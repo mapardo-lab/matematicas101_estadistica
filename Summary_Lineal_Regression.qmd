@@ -1,0 +1,132 @@
+---
+title: "LinealRegressionModel"
+format: html
+editor: visual
+---
+
+-   No hay modelo perfecto.
+-   Buscarle la utilidad al modelo
+-   Generalizar modelos. NO overfitting: RMSE(test) similar RMSE(train)
+
+Lectura de datos
+
+```{r}
+concrete<-read.csv("data/Concrete_Data.csv",
+                   col.names=c("cemento","escoria","cenizas","agua","plastificante","aggrueso","agfino","edad","resistencia"))
+str(concrete)
+```
+
+Análisis previo distribución variables y correlación entre variables
+
+```{r}
+library(GGally)
+ggpairs(concrete, 
+       #lower = list(continuous = wrap("density", alpha = 0.8,size=0.2,color='blue'))
+       lower = list(continuous = wrap("points", alpha = 0.3,size=0.1,color='blue'))
+       )
+```
+
+Selección aleatoria de datos para entrenamiento (70%) y test (30%)
+
+```{r}
+set.seed(12)
+idx<-sample(1:nrow(concrete),nrow(concrete)*0.7)
+train.df<-concrete[idx,]
+test.df<-concrete[-idx,]
+```
+
+Modelo regresión lineal con datos entrenamiento
+
+```{r}
+model<-lm(resistencia~.,train.df)
+summary(model)
+confint(model)
+```
+
+Parámetros ajuste **datos entrenamiento** a modelo
+
+```{r}
+caret::postResample(pred=predict(model,train.df), 
+                    obs= train.df$resistencia)
+```
+
+Análisis de residuos para **datos entrenamiento**
+
+1.  Normalidad
+
+2.  Media en torno a cero (estable en torno a cero)
+
+3.  Homocedasticidad (varianza estable)
+
+```{r}
+hist(train.df$resistencia-predict(model,train.df))
+qqnorm(train.df$resistencia-predict(model,train.df))
+qqline(train.df$resistencia-predict(model,train.df), col = 'orange', lwd =2)
+plot(train.df$resistencia,train.df$resistencia-predict(model,train.df))
+```
+
+Parámetros ajuste **datos entrenamiento** a modelo
+
+RMSE(test) similar RMSE(train)
+
+```{r}
+caret::postResample(pred=predict(model,test.df), 
+                    obs= test.df$resistencia)
+```
+
+Análisis de residuos para **datos entrenamiento**
+
+1.  Normalidad
+
+2.  Media en torno a cero (estable en torno a cero)
+
+3.  Homocedasticidad (varianza estable)
+
+```{r}
+hist(test.df$resistencia-predict(model,test.df))
+qqnorm(test.df$resistencia-predict(model,test.df))
+qqline(test.df$resistencia-predict(model,test.df), col = 'orange', lwd =2)
+plot(test.df$resistencia,test.df$resistencia-predict(model,test.df))
+```
+
+Mejora modelos con polinomios de diferente grado
+
+```{r}
+calcmse<-function(y_real,y_est){
+  sum((y_real-y_est)^2,na.rm = T)/length(y_real)
+}
+
+mse_train<-c()
+mse_test<-c()
+for (N in 1:5){
+    model<-lm(resistencia~
+           poly(cemento,N)*poly(escoria,N)*poly(cenizas,N)+
+           poly(agua,N)*poly(plastificante,N)+
+           poly(aggrueso,N)*poly(agfino,N)+
+           poly(edad,N),data = train.df)
+    
+    yp_train<-predict(model,train.df)
+    mse_train[N]<-calcmse(train.df$resistencia,yp_train)
+  
+    yp_test<-predict(model,test.df)
+    mse_test[N] <-calcmse(test.df$resistencia,yp_test)
+}
+mse.df<-data.frame(degree=1:length(mse_train),mse=mse_train,type="Train")
+mse.df<-rbind(mse.df,data.frame(degree=1:length(mse_train),mse=mse_test,type="Test"))
+
+library(ggplot2)
+options(repr.plot.height=4,repr.plot.width=6)
+
+ggplot(mse.df,aes(x=degree,y=mse,color=type))+geom_line()+geom_point()+scale_y_log10()
+```
+
+Mejora modelo con eliminación de outliers (Cook's distance)
+
+```{r}
+plot(cooks.distance(model))
+th = 0.01
+abline(h=th,col='red')
+train.df.clean <- train.df[cooks.distance(model)<th,]
+model.clean <- model<-lm(resistencia~.,train.df.clean)
+summary(model.clean)
+```

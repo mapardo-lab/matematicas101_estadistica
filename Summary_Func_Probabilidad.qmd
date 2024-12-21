@@ -1,0 +1,26 @@
+---
+title: "Resumen_Func_probabilidad"
+format: html
+editor: visual
+---
+
+## Función de densidad de probabilidad f(x)
+
+Para una variable aleatoria x
+
+Probabilidad relativa de variable x tome determinado valor
+
+-   Discreta: edad persona escogida aleatoriamente
+-   Continua: colesterol en sangre para una persona aleatoria
+
+## Función de distribución acumulativa F(x)
+
+Probabilidad variable aleatoria sea igual o menor a un valor dado
+
+rXXXX: random sample
+
+dXXXX: probability density function x -\> f(x)
+
+pXXXX: cumulative distribution function x -\> F(x)
+
+qXXXX: inverse of cumulative distribution function F(x) -\> x
